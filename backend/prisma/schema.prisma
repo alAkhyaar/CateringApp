@@ -1,0 +1,244 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Enum untuk role pengguna
+enum Role {
+  PEMILIK
+  SUPER_ADMIN
+  ADMIN_KEUANGAN
+  ADMIN_CS
+  ADMIN_MENU
+  ADMIN_SDM
+}
+
+// Tabel Users - Semua pengguna sistem
+model User {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(100)
+  email       String    @unique @db.VarChar(100)
+  password    String    @db.VarChar(255)
+  phone       String?   @db.VarChar(20)
+  address     String?   @db.Text
+  avatar      String?   @db.VarChar(255)
+  role        Role      @default(ADMIN_CS)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  incomes       Income[]
+  expenses      Expense[]
+  ordersIn      OrderIn[]
+  ordersOut     OrderOut[]
+  menus         Menu[]
+  ingredients   Ingredient[]
+  employees     Employee[]
+  activityLogs  ActivityLog[]
+
+  @@map("users")
+}
+
+// Tabel Pemasukan Keuangan
+model Income {
+  id          Int       @id @default(autoincrement())
+  date        DateTime
+  description String    @db.VarChar(255)
+  amount      Decimal   @db.Decimal(15, 2)
+  category    String    @db.VarChar(100)
+  notes       String?   @db.Text
+  createdBy   Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  user        User      @relation(fields: [createdBy], references: [id])
+
+  @@map("incomes")
+}
+
+// Tabel Pengeluaran Keuangan
+model Expense {
+  id          Int       @id @default(autoincrement())
+  date        DateTime
+  description String    @db.VarChar(255)
+  amount      Decimal   @db.Decimal(15, 2)
+  category    String    @db.VarChar(100)
+  notes       String?   @db.Text
+  createdBy   Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  user        User      @relation(fields: [createdBy], references: [id])
+
+  @@map("expenses")
+}
+
+// Tabel Pesanan Masuk
+model OrderIn {
+  id              Int       @id @default(autoincrement())
+  orderNumber     String    @unique @db.VarChar(50)
+  customerName    String    @db.VarChar(100)
+  customerPhone   String    @db.VarChar(20)
+  customerAddress String    @db.Text
+  orderDate       DateTime
+  deliveryDate    DateTime
+  totalAmount     Decimal   @db.Decimal(15, 2)
+  status          String    @default("PENDING") @db.VarChar(50)
+  notes           String?   @db.Text
+  createdBy       Int
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  user            User      @relation(fields: [createdBy], references: [id])
+  items           OrderInItem[]
+
+  @@map("orders_in")
+}
+
+// Tabel Item Pesanan Masuk
+model OrderInItem {
+  id          Int       @id @default(autoincrement())
+  orderId     Int
+  menuId      Int?
+  menuName    String    @db.VarChar(100)
+  quantity    Int
+  unitPrice   Decimal   @db.Decimal(15, 2)
+  subtotal    Decimal   @db.Decimal(15, 2)
+  notes       String?   @db.Text
+
+  // Relations
+  order       OrderIn   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_in_items")
+}
+
+// Tabel Pesanan Keluar (Delivery/Completed)
+model OrderOut {
+  id              Int       @id @default(autoincrement())
+  orderNumber     String    @unique @db.VarChar(50)
+  customerName    String    @db.VarChar(100)
+  customerPhone   String    @db.VarChar(20)
+  customerAddress String    @db.Text
+  orderDate       DateTime
+  deliveryDate    DateTime
+  completedDate   DateTime?
+  totalAmount     Decimal   @db.Decimal(15, 2)
+  status          String    @default("DELIVERED") @db.VarChar(50)
+  notes           String?   @db.Text
+  createdBy       Int
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  user            User      @relation(fields: [createdBy], references: [id])
+  items           OrderOutItem[]
+
+  @@map("orders_out")
+}
+
+// Tabel Item Pesanan Keluar
+model OrderOutItem {
+  id          Int       @id @default(autoincrement())
+  orderId     Int
+  menuId      Int?
+  menuName    String    @db.VarChar(100)
+  quantity    Int
+  unitPrice   Decimal   @db.Decimal(15, 2)
+  subtotal    Decimal   @db.Decimal(15, 2)
+  notes       String?   @db.Text
+
+  // Relations
+  order       OrderOut  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_out_items")
+}
+
+// Tabel Menu Makanan/Minuman
+model Menu {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(100)
+  description String?   @db.Text
+  category    String    @db.VarChar(50)
+  price       Decimal   @db.Decimal(15, 2)
+  image       String?   @db.VarChar(255)
+  isAvailable Boolean   @default(true)
+  createdBy   Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  user        User      @relation(fields: [createdBy], references: [id])
+
+  @@map("menus")
+}
+
+// Tabel Stok Bahan
+model Ingredient {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(100)
+  category    String    @db.VarChar(50)
+  stock       Decimal   @db.Decimal(15, 2)
+  unit        String    @db.VarChar(20)
+  minStock    Decimal   @db.Decimal(15, 2)
+  price       Decimal   @db.Decimal(15, 2)
+  supplier    String?   @db.VarChar(100)
+  notes       String?   @db.Text
+  createdBy   Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  user        User      @relation(fields: [createdBy], references: [id])
+
+  @@map("ingredients")
+}
+
+// Tabel Data Karyawan
+model Employee {
+  id          Int       @id @default(autoincrement())
+  employeeId  String    @unique @db.VarChar(20)
+  name        String    @db.VarChar(100)
+  email       String?   @db.VarChar(100)
+  phone       String    @db.VarChar(20)
+  address     String    @db.Text
+  position    String    @db.VarChar(50)
+  department  String    @db.VarChar(50)
+  joinDate    DateTime
+  salary      Decimal   @db.Decimal(15, 2)
+  status      String    @default("ACTIVE") @db.VarChar(20)
+  photo       String?   @db.VarChar(255)
+  notes       String?   @db.Text
+  createdBy   Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  user        User      @relation(fields: [createdBy], references: [id])
+
+  @@map("employees")
+}
+
+// Tabel Log Aktivitas - Untuk monitoring Pemilik
+model ActivityLog {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  action      String    @db.VarChar(50)
+  module      String    @db.VarChar(50)
+  description String    @db.Text
+  ipAddress   String?   @db.VarChar(50)
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@map("activity_logs")
+}
+
