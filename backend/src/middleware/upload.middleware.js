@@ -17,7 +17,7 @@ const storage = multer.diskStorage({
       folder = 'menus';
     } else if (req.baseUrl.includes('employees')) {
       folder = 'employees';
-    } else if (req.baseUrl.includes('users')) {
+    } else if (req.baseUrl.includes('users') || req.baseUrl.includes('auth')) {
       folder = 'avatars';
     }
 
@@ -31,22 +31,24 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
+    const sanitizedName = file.originalname.toLowerCase().replace(/\s+/g, '-');
+    cb(null, uniqueSuffix + path.extname(sanitizedName));
   },
 });
 
-// File filter
+// File filter - Multer 2.x compatible
 const fileFilter = (req, file, cb) => {
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
   
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Tipe file tidak diizinkan. Hanya JPEG, PNG, GIF, dan WebP yang diperbolehkan.'), false);
+    // Multer 2.x: pass error as second argument for rejection
+    cb(new Error('Tipe file tidak diizinkan. Hanya JPEG, PNG, GIF, dan WebP yang diperbolehkan.'));
   }
 };
 
-// Create multer instance
+// Create multer instance - Multer 2.x compatible
 const upload = multer({
   storage,
   fileFilter,
